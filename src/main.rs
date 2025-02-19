@@ -1,13 +1,20 @@
 //example api link: http://192.168.1.120:7878/seckey/delete/foo.test
 use std::io::stdin;
+use reqwest::{get, Error};
+use tokio;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
     let key = input("Enter the key: ");
     let action = input("Enter the desired action");
     let parameters = input("Enter the desired parameters");
 
-    let query = format!("{SOCKET}/{key}/{action}/{parameters}");
+    let query = format!("http://{SOCKET}/{key}/{action}/{parameters}");
     println!("query: {}", query);
+
+    let result = get(query).await?.text().await?;
+    println!("{:?}", result);
+    Ok(())
 }
 
 fn input(question: &str) -> String {
