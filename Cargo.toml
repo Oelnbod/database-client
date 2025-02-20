@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 reqwest = "0.12.12"
 tokio = {version = "1.43.0", features = ["full"] }
+aes-gcm = "0.10.3"
+crypto = "0.5.1"
+base64 = "0.22.1"
