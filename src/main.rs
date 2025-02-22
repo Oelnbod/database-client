@@ -9,18 +9,27 @@ mod encryption;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let aes_key = "thiskeystrmustbe32charlongtowork".to_string();
+
     loop {
-        println!(
+        let query = format!("http://{SOCKET}/{KEY}/list_all/ ");
+        let result = get(query).await?.text().await?;
+        let vec_result: Vec<PasswordEntry> =
+            serde_json::from_str(&result).expect("Error converting json to string");
+
+        let websites = generate_list_of_parameters(vec_result, "website");
+	
+	println!(
             "\n**Actions availiable**
-list_all
 list_row
 add
 delete\n"
         );
+	println!("**Websites with entry**");
+	pretty_list(websites);
+	println!("\n");
         let action = input("Enter the desired action");
 
         let parameters = match action.as_str() {
-            "list_all" => "",
             "list_row" => &input("Enter the search query"),
             "add" => {
                 let website = input("Enter the website: ");
@@ -43,8 +52,8 @@ delete\n"
         if serde_json::from_str::<serde_json::Value>(&result).is_ok() == true {
             let vec_result: Vec<PasswordEntry> =
                 serde_json::from_str(&result).expect("Error converting json to string");
-            println!("{:?}", vec_result.len());
-            generate_list_of_parameters(vec_result, "website");
+            let websites = generate_list_of_parameters(vec_result, "website");
+            println!("{:#?}", websites)
         } else {
             println!("{:?}", result);
         }
@@ -61,15 +70,22 @@ fn input(question: &str) -> String {
     text
 }
 
-fn generate_list_of_parameters(data: Vec<PasswordEntry>, parameter: &str) {
+fn generate_list_of_parameters(data: Vec<PasswordEntry>, parameter: &str) -> Vec<String> {
+    let mut return_vec = Vec::new();
     for rows in data {
         match parameter {
-            "id" => println!("{}", rows.id),
-            "website" => println!("{}", rows.website),
-            "username" => println!("{}", rows.username),
-            "password" => println!("{}", rows.password),
-            _ => println!("invalid parameter requested"),
-        }
+            "id" => return_vec.push(rows.id.to_string()),
+            "website" => return_vec.push(rows.website),
+            "username" => return_vec.push(rows.username),
+            "password" => return_vec.push(rows.password),
+            _ => return_vec.push("invalid parameter requested".to_string()),
+        };
+    }
+    return_vec
+}
+fn pretty_list(vec: Vec<String>) {
+    for items in vec {
+        println!("{}", items);
     }
 }
 
