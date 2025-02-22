@@ -9,3 +9,5 @@ tokio = {version = "1.43.0", features = ["full"] }
 aes-gcm = "0.10.3"
 crypto = "0.5.1"
 base64 = "0.22.1"
+serde_json = "1.0.139"
+serde = { version = "1.0.218", features = ["derive"] }
