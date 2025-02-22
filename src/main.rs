@@ -1,10 +1,12 @@
 //example api link: http://192.168.1.120:7878/seckey/delete/foo.test
 use aes_gcm::{
     aead::{Aead, AeadCore, KeyInit, OsRng},
-    Aes256Gcm, Key, Nonce
+    Aes256Gcm, Key, Nonce,
 };
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use reqwest::{get, Error};
+use serde::Deserialize;
+use serde_json;
 use std::io::stdin;
 use std::str;
 use tokio;
@@ -40,7 +42,16 @@ delete\n"
         println!("query: {}", query);
 
         let result = get(query).await?.text().await?;
-        println!("{:?}", result);
+
+        //this is validating if the response is JSON
+        if serde_json::from_str::<serde_json::Value>(&result).is_ok() == true {
+            let vec_result: Vec<PasswordEntry> =
+                serde_json::from_str(&result).expect("Error converting json to string");
+            println!("{:?}", vec_result.len());
+	    generate_list_of_parameters(vec_result, "website");
+        } else {
+            println!("{:?}", result);
+        }
     }
 }
 fn input(question: &str) -> String {
@@ -71,18 +82,40 @@ fn encrypt(key_str: String, plaintext: String) -> String {
 
 fn decrypt(key_str: String, string_encrypted_data: String) {
     let key = Key::<Aes256Gcm>::from_slice(key_str.as_bytes());
-    let encrypted_data = STANDARD.decode(string_encrypted_data).expect("error decoding from Base64");
+    let encrypted_data = STANDARD
+        .decode(string_encrypted_data)
+        .expect("error decoding from Base64");
     let (nonce_bytes, ciphertext) = encrypted_data.split_at(12);
     let nonce = Nonce::from_slice(nonce_bytes);
 
     let cipher = Aes256Gcm::new(key);
 
-    let decrypted_bytes = cipher.decrypt(nonce, ciphertext)
+    let decrypted_bytes = cipher
+        .decrypt(nonce, ciphertext)
         .expect("Decryption failed");
-    
-    let plaintext = String::from_utf8(decrypted_bytes)
-        .expect("invalid UTF8 in decryption data");
+
+    let plaintext = String::from_utf8(decrypted_bytes).expect("invalid UTF8 in decryption data");
     println!("{}", plaintext);
+}
+fn generate_list_of_parameters(data: Vec<PasswordEntry>, parameter: &str) {
+    for rows in data {
+	match parameter {
+	    "id" => println!("{}", rows.id),
+	    "website" => println!("{}", rows.website),
+	    "username" => println!("{}", rows.username),
+	    "password" => println!("{}", rows.password),
+	    _ => println!("invalid parameter requested"),
+	}
+	
+    }
+}
+
+#[derive(Deserialize, Debug)]
+struct PasswordEntry {
+    id: u32,
+    website: String,
+    username: String,
+    password: String,
 }
 
 //change this for deployment. Possibly read from .yaml config file.
