@@ -16,17 +16,17 @@ async fn main() -> Result<(), Error> {
         let vec_result: Vec<PasswordEntry> =
             serde_json::from_str(&result).expect("Error converting json to string");
 
-        let websites = generate_list_of_parameters(vec_result, "website");
-	
-	println!(
+        let websites = list_by_params(vec_result, "website");
+
+        println!(
             "\n**Actions availiable**
 list_row
 add
 delete\n"
         );
-	println!("**Websites with entry**");
-	pretty_list(websites);
-	println!("\n");
+        println!("**Websites with entry**");
+        pretty_list(websites);
+        println!("\n");
         let action = input("Enter the desired action");
 
         let parameters = match action.as_str() {
@@ -48,12 +48,25 @@ delete\n"
 
         let result = get(query).await?.text().await?;
 
-        //this is validating if the response is JSON
+        //this is validating if the response is JSON, as not all responses return json.
         if serde_json::from_str::<serde_json::Value>(&result).is_ok() == true {
             let vec_result: Vec<PasswordEntry> =
                 serde_json::from_str(&result).expect("Error converting json to string");
-            let websites = generate_list_of_parameters(vec_result, "website");
-            println!("{:#?}", websites)
+	    //this is needed to allow for pretty printing
+            if action == "list_row" {
+                println!(
+                    "website: {}",
+                    list_by_params(vec_result.clone(), "website")[0]
+                );
+                println!(
+                    "username: {}",
+                    list_by_params(vec_result.clone(), "username")[0]
+                );
+                println!(
+                    "password: {}",
+                    list_by_params(vec_result.clone(), "password")[0]
+                );
+            }
         } else {
             println!("{:?}", result);
         }
@@ -70,7 +83,7 @@ fn input(question: &str) -> String {
     text
 }
 
-fn generate_list_of_parameters(data: Vec<PasswordEntry>, parameter: &str) -> Vec<String> {
+fn list_by_params(data: Vec<PasswordEntry>, parameter: &str) -> Vec<String> {
     let mut return_vec = Vec::new();
     for rows in data {
         match parameter {
@@ -88,8 +101,7 @@ fn pretty_list(vec: Vec<String>) {
         println!("{}", items);
     }
 }
-
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 struct PasswordEntry {
     id: u32,
     website: String,
