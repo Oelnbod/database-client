@@ -9,12 +9,14 @@ mod encryption;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     loop {
+        //this is for indicating the websites that have entries
         let query = format!("http://{SOCKET}/{KEY}/list_all/ ");
         let result = get(query).await?.text().await?;
         let vec_result: Vec<PasswordEntry> =
             serde_json::from_str(&result).expect("Error converting json to string");
-
-        let websites = list_by_params(vec_result, "website");
+        let mut websites = list_by_params(vec_result, "website");
+        websites.sort(); //sorting alphabetically
+        websites.dedup(); //deduplicating the vec
 
         println!(
             "\n**Actions availiable**
@@ -25,8 +27,8 @@ delete\n"
         println!("**Websites with entry**");
         pretty_list(websites);
         println!("\n");
+        //taking an action from user input
         let action = input("Enter the desired action");
-
         let parameters = match action.as_str() {
             "list_row" => &input("Enter the search query"),
             "add" => {
@@ -34,8 +36,7 @@ delete\n"
                 let username = input("Enter the Username/email: ");
                 let password = input("Enter the password: ");
                 let password = encryption::encrypt(AES_KEY, password);
-
-                &format!("{website},{username},{password}").to_string()
+                &format!("{website},{username},{password}").to_string() //formatting so that it is in the required format for api
             }
             "delete" => &input("Enter the website of the row that you wish to delete: "),
             _ => "",
@@ -51,7 +52,7 @@ delete\n"
             let vec_result: Vec<PasswordEntry> =
                 serde_json::from_str(&result).expect("Error converting json to string");
 
-            //this is needed to allow for pretty printing
+            //this is needed to allow for a nice display if using list_row, must happen later than the api call
             if action == "list_row" {
                 let websites = list_by_params(vec_result.clone(), "website");
                 let usernames = list_by_params(vec_result.clone(), "username");
@@ -76,6 +77,7 @@ delete\n"
         }
     }
 }
+//simplifying the input to be more like input() from python
 fn input(question: &str) -> String {
     println!("{}", question);
     //reading input from the console
@@ -86,7 +88,7 @@ fn input(question: &str) -> String {
     text.pop();
     text
 }
-
+//this is for request entries
 fn list_by_params(data: Vec<PasswordEntry>, parameter: &str) -> Vec<String> {
     let mut return_vec = Vec::new();
     for rows in data {
@@ -100,6 +102,7 @@ fn list_by_params(data: Vec<PasswordEntry>, parameter: &str) -> Vec<String> {
     }
     return_vec
 }
+//just moved for neatness
 fn pretty_list(vec: Vec<String>) {
     for items in vec {
         println!("{}", items);
