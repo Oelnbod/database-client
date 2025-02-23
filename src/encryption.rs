@@ -4,7 +4,8 @@ use aes_gcm::{
 };
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 
-pub fn encrypt(key_str: String, plaintext: String) -> String {
+pub fn encrypt(key_str: &str, plaintext: String) -> String {
+    let key_str = key_str.to_string();
     let key = Key::<Aes256Gcm>::from_slice(&key_str.as_bytes());
     let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
 
@@ -20,7 +21,8 @@ pub fn encrypt(key_str: String, plaintext: String) -> String {
     string_encrypted_data
 }
 
-pub fn decrypt(key_str: String, string_encrypted_data: String) {
+pub fn decrypt(key_str: &str, string_encrypted_data: String) -> String {
+    let key_str = key_str.to_string();
     let key = Key::<Aes256Gcm>::from_slice(key_str.as_bytes());
     let encrypted_data = STANDARD
         .decode(string_encrypted_data)
@@ -35,5 +37,5 @@ pub fn decrypt(key_str: String, string_encrypted_data: String) {
         .expect("Decryption failed");
 
     let plaintext = String::from_utf8(decrypted_bytes).expect("invalid UTF8 in decryption data");
-    println!("{}", plaintext);
+    plaintext
 }

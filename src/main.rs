@@ -8,8 +8,6 @@ use tokio;
 mod encryption;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let aes_key = "thiskeystrmustbe32charlongtowork".to_string();
-
     loop {
         let query = format!("http://{SOCKET}/{KEY}/list_all/ ");
         let result = get(query).await?.text().await?;
@@ -35,7 +33,7 @@ delete\n"
                 let website = input("Enter the website: ");
                 let username = input("Enter the Username/email: ");
                 let password = input("Enter the password: ");
-                let password = encryption::encrypt(aes_key.clone(), password);
+                let password = encryption::encrypt(AES_KEY, password);
 
                 &format!("{website},{username},{password}").to_string()
             }
@@ -52,20 +50,26 @@ delete\n"
         if serde_json::from_str::<serde_json::Value>(&result).is_ok() == true {
             let vec_result: Vec<PasswordEntry> =
                 serde_json::from_str(&result).expect("Error converting json to string");
-	    //this is needed to allow for pretty printing
+
+            //this is needed to allow for pretty printing
             if action == "list_row" {
-                println!(
-                    "website: {}",
-                    list_by_params(vec_result.clone(), "website")[0]
-                );
-                println!(
-                    "username: {}",
-                    list_by_params(vec_result.clone(), "username")[0]
-                );
-                println!(
-                    "password: {}",
-                    list_by_params(vec_result.clone(), "password")[0]
-                );
+                let websites = list_by_params(vec_result.clone(), "website");
+                let usernames = list_by_params(vec_result.clone(), "username");
+                let passwords = list_by_params(vec_result.clone(), "password");
+
+                for rows in 0..websites.len() {
+                    println!("-----------------------------------");
+                    println!("website: {}", websites[rows]);
+                    println!("username: {}", usernames[rows]);
+
+                    println!(
+                        "password: {:?}",
+                        encryption::decrypt(AES_KEY, passwords[rows].clone())
+                    );
+                    println!("-----------------------------------\n\n");
+                }
+            } else {
+                ();
             }
         } else {
             println!("{:?}", result);
@@ -112,3 +116,4 @@ struct PasswordEntry {
 //change this for deployment. Possibly read from .yaml config file.
 const SOCKET: &str = "localhost:7878";
 const KEY: &str = "seckey"; //this is the api key
+const AES_KEY: &str = "thiskeystrmustbe32charlongtowork"; //this is the key for decryption
