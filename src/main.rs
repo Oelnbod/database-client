@@ -1,4 +1,3 @@
-//example api link: http://192.168.1.120:7878/seckey/delete/foo.test
 use reqwest::{get, Error};
 use serde::Deserialize;
 use serde_json;
